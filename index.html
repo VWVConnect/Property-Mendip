@@ -1,148 +1,198 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>UK Property Tracker</title>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>UK Property Tracker</title>
 
-  <!-- Google Fonts -->
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+<!-- Google Fonts -->
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet" />
 
-  <!-- Leaflet CSS -->
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css" />
+<!-- Leaflet CSS -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css" />
 
-  <style>
-    body {
-      font-family: 'Inter', sans-serif;
-      margin: 0;
-      background: #f4f4f7;
-      color: #333;
-    }
+<style>
+  body {
+    font-family: 'Inter', sans-serif;
+    margin: 0;
+    background: #f4f4f7;
+    color: #333;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px;
+  }
 
+  #controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    padding: 16px;
+    background: #fff;
+    border: 3px solid #192543;
+    border-radius: 14px;
+    max-width: 900px;
+    width: 100%;
+    box-sizing: border-box;
+    margin-bottom: 20px;
+    justify-content: center;
+  }
+
+  input {
+    padding: 10px 12px;
+    font-size: 14px;
+    border: none;
+    border-left: 6px solid #7fc28f;
+    border-right: 6px solid #07b0a0;
+    border-radius: 10px;
+    outline: none;
+    flex: 1 1 220px;
+    box-shadow: inset 0 1px 2px rgba(0,0,0,0.05);
+    min-width: 220px;
+  }
+
+  button {
+    padding: 10px 20px;
+    font-size: 14px;
+    color: white;
+    border: none;
+    border-radius: 14px;
+    cursor: pointer;
+    transition: background-color 0.25s ease;
+    min-width: 120px;
+    font-weight: 600;
+    box-shadow: 0 3px 6px rgba(0,0,0,0.12);
+  }
+
+  button#add-btn {
+    background-color: #00a6c5;
+  }
+  button#add-btn:hover {
+    background-color: #008ba3;
+  }
+
+  button#clear-btn {
+    background-color: #192543;
+  }
+  button#clear-btn:hover {
+    background-color: #121e35;
+  }
+
+  #map {
+    height: 70vh;
+    max-width: 900px;
+    width: 100%;
+    border: 3px solid #192543;
+    border-radius: 14px;
+    box-shadow: 0 4px 8px rgba(25,37,67,0.15);
+  }
+
+  @media (max-width: 600px) {
     #controls {
-      display: flex;
-      flex-wrap: wrap;
-      align-items: center;
-      gap: 10px;
-      padding: 16px;
-      background: #fff;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-      border-bottom: 1px solid #ddd;
+      flex-direction: column;
+      align-items: stretch;
     }
-
-    input {
-      padding: 10px 12px;
-      font-size: 14px;
-      border: 1px solid #ccc;
-      border-radius: 10px;
-      outline: none;
-      flex: 1 1 200px;
-      box-shadow: inset 0 1px 2px rgba(0,0,0,0.05);
-    }
-
     button {
-      padding: 10px 16px;
-      font-size: 14px;
-      background-color: #007BFF;
-      color: white;
-      border: none;
-      border-radius: 10px;
-      cursor: pointer;
-      transition: background-color 0.2s ease;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    }
-
-    button:hover {
-      background-color: #005fcc;
-    }
-
-    #map {
-      height: calc(100vh - 80px);
       width: 100%;
     }
-
-    @media (max-width: 600px) {
-      #controls {
-        flex-direction: column;
-        align-items: stretch;
-      }
-
-      button {
-        width: 100%;
-      }
-    }
-  </style>
+  }
+</style>
 </head>
 <body>
 
   <div id="controls">
     <input id="address" placeholder="Property Address" />
     <input id="postcode" placeholder="Postcode" />
-    <button onclick="addProperty()">Add</button>
-    <button onclick="clearProperties()" style="background:#dc3545;">Clear</button>
+    <button id="add-btn" onclick="addProperty()">Add Property</button>
+    <button id="clear-btn" onclick="clearProperties()">Clear All</button>
   </div>
 
   <div id="map"></div>
 
-  <!-- Leaflet JS -->
-  <script src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js"></script>
-  <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+<!-- Leaflet JS -->
+<script src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js"></script>
+<script src="https://unpkg.com/axios/dist/axios.min.js"></script>
 
-  <script>
-    const map = L.map('map').setView([54.5, -3], 6);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+<script>
+  // UK bounds approx - restrict panning and zoom
+  const ukBounds = [
+    [49.8, -8.6],  // Southwest (Cornwall)
+    [60.9, 2.1]    // Northeast (Shetland Islands)
+  ];
 
-    let properties = JSON.parse(localStorage.getItem("properties") || "[]");
+  const map = L.map('map', {
+    maxBounds: ukBounds,
+    maxBoundsViscosity: 0.7,
+    minZoom: 5,
+    maxZoom: 10,
+  }).setView([54.5, -3], 6);
 
-    function saveProperties() {
-      localStorage.setItem("properties", JSON.stringify(properties));
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+
+  let properties = JSON.parse(localStorage.getItem("properties") || "[]");
+
+  function saveProperties() {
+    localStorage.setItem("properties", JSON.stringify(properties));
+  }
+
+  function addMarker(p) {
+    L.marker([p.lat, p.lng])
+      .addTo(map)
+      .bindPopup(`<strong>${p.address}</strong><br>${p.postcode}`);
+  }
+
+  function loadMarkers() {
+    properties.forEach(addMarker);
+  }
+
+  function addProperty() {
+    const address = document.getElementById("address").value.trim();
+    const postcode = document.getElementById("postcode").value.trim();
+    if (!address || !postcode) {
+      alert("Please enter both an address and a postcode.");
+      return;
     }
 
-    function addMarker(p) {
-      L.marker([p.lat, p.lng])
-        .addTo(map)
-        .bindPopup(`<strong>${p.address}</strong><br>${p.postcode}`);
-    }
+    const fullAddress = `${address}, ${postcode}, UK`;
 
-    function loadMarkers() {
-      properties.forEach(addMarker);
-    }
+    axios.get(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(fullAddress)}`)
+      .then(res => {
+        if (res.data.length > 0) {
+          const loc = res.data[0];
+          const lat = parseFloat(loc.lat);
+          const lng = parseFloat(loc.lon);
 
-    function addProperty() {
-      const address = document.getElementById("address").value.trim();
-      const postcode = document.getElementById("postcode").value.trim();
-      if (!address || !postcode) return alert("Enter both address and postcode.");
-
-      const fullAddress = `${address}, ${postcode}, UK`;
-
-      axios.get(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(fullAddress)}`)
-        .then(res => {
-          if (res.data.length > 0) {
-            const loc = res.data[0];
-            const lat = parseFloat(loc.lat);
-            const lng = parseFloat(loc.lon);
-
-            const prop = { address, postcode, lat, lng };
-            properties.push(prop);
-            saveProperties();
-            addMarker(prop);
-            document.getElementById("address").value = '';
-            document.getElementById("postcode").value = '';
-          } else {
-            alert("Location not found.");
+          // Check if coords inside UK bounds before adding
+          if (lat < ukBounds[0][0] || lat > ukBounds[1][0] || lng < ukBounds[0][1] || lng > ukBounds[1][1]) {
+            alert("This location is outside the UK bounds.");
+            return;
           }
-        });
-    }
 
-    function clearProperties() {
-      if (confirm("Are you sure you want to remove all properties?")) {
-        properties = [];
-        localStorage.removeItem("properties");
-        location.reload();
-      }
-    }
+          const prop = { address, postcode, lat, lng };
+          properties.push(prop);
+          saveProperties();
+          addMarker(prop);
 
-    loadMarkers();
-  </script>
+          // Reset inputs
+          document.getElementById("address").value = '';
+          document.getElementById("postcode").value = '';
+        } else {
+          alert("Location not found.");
+        }
+      })
+      .catch(() => alert("Error fetching location data."));
+  }
+
+  function clearProperties() {
+    if (confirm("Are you sure you want to clear all properties?")) {
+      properties = [];
+      localStorage.removeItem("properties");
+      location.reload();
+    }
+  }
+
+  loadMarkers();
+</script>
+
 </body>
 </html>
