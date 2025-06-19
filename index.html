@@ -117,88 +117,82 @@
   <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
 
   <script>
-    const ukBounds = [
-      [49.8, -8.6],
-      [60.9, 2.1]
-    ];
+  const ukBounds = [
+    [49.8, -8.6],
+    [60.9, 2.1]
+  ];
 
-    const map = L.map('map', {
-      maxBounds: ukBounds,
-      maxBoundsViscosity: 0.7,
-      minZoom: 5,
-      maxZoom: 10,
-    }).setView([54.5, -3], 6);
+  const map = L.map('map', {
+    maxBounds: ukBounds,
+    maxBoundsViscosity: 0.7,
+    minZoom: 5,
+    maxZoom: 10,
+  }).setView([54.5, -3], 6);
 
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 
-    let properties = JSON.parse(localStorage.getItem("properties") || "[]");
+  let properties = JSON.parse(localStorage.getItem("properties") || "[]");
 
-    function saveProperties() {
-      localStorage.setItem("properties", JSON.stringify(properties));
+  function saveProperties() {
+    localStorage.setItem("properties", JSON.stringify(properties));
+  }
+
+  function addMarker(p) {
+    L.marker([p.lat, p.lng])
+      .addTo(map)
+      .bindPopup(`<strong>${p.address}</strong><br>${p.postcode}`);
+  }
+
+  function loadMarkers() {
+    properties.forEach(addMarker);
+  }
+
+  function addProperty() {
+    const address = document.getElementById("address").value.trim();
+    const postcode = document.getElementById("postcode").value.trim();
+    if (!address || !postcode) {
+      alert("Please enter both an address and a postcode.");
+      return;
     }
 
-    function addMarker(p) {
-      L.marker([p.lat, p.lng], {
-        icon: L.icon({
-          iconUrl: "https://chart.googleapis.com/chart?chst=d_map_pin_letter&chld=%E2%80%A2|e1345c",
-          iconSize: [21, 34],
-          iconAnchor: [10, 34],
-          popupAnchor: [1, -34],
-        })
-      }).addTo(map)
-        .bindPopup(`<strong>${p.address}</strong><br>${p.postcode}`);
-    }
+    const fullAddress = `${address}, ${postcode}, UK`;
 
-    function loadMarkers() {
-      properties.forEach(addMarker);
-    }
+    axios.get(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(fullAddress)}`)
+      .then(res => {
+        if (res.data.length > 0) {
+          const loc = res.data[0];
+          const lat = parseFloat(loc.lat);
+          const lng = parseFloat(loc.lon);
 
-    function addProperty() {
-      const address = document.getElementById("address").value.trim();
-      const postcode = document.getElementById("postcode").value.trim();
-
-      if (!address || !postcode) {
-        alert("Please enter both an address and a postcode.");
-        return;
-      }
-
-      const fullAddress = `${address}, ${postcode}, UK`;
-
-      axios.get(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(fullAddress)}`)
-        .then(res => {
-          if (res.data.length > 0) {
-            const loc = res.data[0];
-            const lat = parseFloat(loc.lat);
-            const lng = parseFloat(loc.lon);
-
-            if (lat < ukBounds[0][0] || lat > ukBounds[1][0] || lng < ukBounds[0][1] || lng > ukBounds[1][1]) {
-              alert("This location is outside the UK bounds.");
-              return;
-            }
-
-            const prop = { address, postcode, lat, lng };
-            properties.push(prop);
-            saveProperties();
-            addMarker(prop);
-
-            document.getElementById("address").value = '';
-            document.getElementById("postcode").value = '';
-          } else {
-            alert("Location not found.");
+          if (lat < ukBounds[0][0] || lat > ukBounds[1][0] || lng < ukBounds[0][1] || lng > ukBounds[1][1]) {
+            alert("This location is outside the UK bounds.");
+            return;
           }
-        })
-        .catch(() => alert("Error fetching location data."));
-    }
 
-    function clearProperties() {
-      if (confirm("Are you sure you want to clear all properties?")) {
-        properties = [];
-        localStorage.removeItem("properties");
-        location.reload();
-      }
-    }
+          const prop = { address, postcode, lat, lng };
+          properties.push(prop);
+          saveProperties();
+          addMarker(prop);
 
-    loadMarkers();
-  </script>
+          document.getElementById("address").value = '';
+          document.getElementById("postcode").value = '';
+        } else {
+          alert("Location not found.");
+        }
+      })
+      .catch(() => alert("Error fetching location data."));
+  }
+
+  function clearProperties() {
+    if (confirm("Are you sure you want to clear all properties?")) {
+      properties = [];
+      localStorage.removeItem("properties");
+      location.reload();
+    }
+  }
+
+  loadMarkers();
+</script>
+
 </body>
 </html>
