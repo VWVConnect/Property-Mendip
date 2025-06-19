@@ -1,85 +1,148 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>UK Property Tracker</title>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  
+
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+
+  <!-- Leaflet CSS -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css" />
+
   <style>
-    body { font-family: Arial; margin: 0; }
-    #map { height: 80vh; width: 100%; }
-    #controls { padding: 10px; background: #f9f9f9; }
-    input { margin: 5px; padding: 5px; width: 200px; }
-    button { margin: 5px; padding: 6px 10px; }
+    body {
+      font-family: 'Inter', sans-serif;
+      margin: 0;
+      background: #f4f4f7;
+      color: #333;
+    }
+
+    #controls {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 10px;
+      padding: 16px;
+      background: #fff;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+      border-bottom: 1px solid #ddd;
+    }
+
+    input {
+      padding: 10px 12px;
+      font-size: 14px;
+      border: 1px solid #ccc;
+      border-radius: 10px;
+      outline: none;
+      flex: 1 1 200px;
+      box-shadow: inset 0 1px 2px rgba(0,0,0,0.05);
+    }
+
+    button {
+      padding: 10px 16px;
+      font-size: 14px;
+      background-color: #007BFF;
+      color: white;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: background-color 0.2s ease;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    button:hover {
+      background-color: #005fcc;
+    }
+
+    #map {
+      height: calc(100vh - 80px);
+      width: 100%;
+    }
+
+    @media (max-width: 600px) {
+      #controls {
+        flex-direction: column;
+        align-items: stretch;
+      }
+
+      button {
+        width: 100%;
+      }
+    }
   </style>
 </head>
 <body>
 
-<div id="controls">
-  <input id="address" placeholder="Address" />
-  <input id="postcode" placeholder="Postcode" />
-  <button onclick="addProperty()">Add Property</button>
-  <button onclick="clearProperties()">Clear All</button>
-</div>
+  <div id="controls">
+    <input id="address" placeholder="Property Address" />
+    <input id="postcode" placeholder="Postcode" />
+    <button onclick="addProperty()">Add</button>
+    <button onclick="clearProperties()" style="background:#dc3545;">Clear</button>
+  </div>
 
-<div id="map"></div>
+  <div id="map"></div>
 
-<script src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js"></script>
-<script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+  <!-- Leaflet JS -->
+  <script src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js"></script>
+  <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
 
-<script>
-  const map = L.map('map').setView([54.5, -3], 6); // Center UK
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+  <script>
+    const map = L.map('map').setView([54.5, -3], 6);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 
-  let properties = JSON.parse(localStorage.getItem("properties") || "[]");
+    let properties = JSON.parse(localStorage.getItem("properties") || "[]");
 
-  function saveProperties() {
-    localStorage.setItem("properties", JSON.stringify(properties));
-  }
-
-  function addMarker(p) {
-    L.marker([p.lat, p.lng])
-      .addTo(map)
-      .bindPopup(`${p.address}<br>${p.postcode}`);
-  }
-
-  function loadMarkers() {
-    properties.forEach(addMarker);
-  }
-
-  function addProperty() {
-    const address = document.getElementById("address").value;
-    const postcode = document.getElementById("postcode").value;
-    const fullAddress = `${address}, ${postcode}, UK`;
-
-    axios.get(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(fullAddress)}`)
-      .then(res => {
-        if (res.data.length > 0) {
-          const loc = res.data[0];
-          const lat = parseFloat(loc.lat);
-          const lng = parseFloat(loc.lon);
-
-          const prop = { address, postcode, lat, lng };
-          properties.push(prop);
-          saveProperties();
-          addMarker(prop);
-        } else {
-          alert("Location not found.");
-        }
-      });
-  }
-
-  function clearProperties() {
-    if (confirm("Remove all properties?")) {
-      properties = [];
-      localStorage.removeItem("properties");
-      location.reload();
+    function saveProperties() {
+      localStorage.setItem("properties", JSON.stringify(properties));
     }
-  }
 
-  loadMarkers();
-</script>
+    function addMarker(p) {
+      L.marker([p.lat, p.lng])
+        .addTo(map)
+        .bindPopup(`<strong>${p.address}</strong><br>${p.postcode}`);
+    }
 
+    function loadMarkers() {
+      properties.forEach(addMarker);
+    }
+
+    function addProperty() {
+      const address = document.getElementById("address").value.trim();
+      const postcode = document.getElementById("postcode").value.trim();
+      if (!address || !postcode) return alert("Enter both address and postcode.");
+
+      const fullAddress = `${address}, ${postcode}, UK`;
+
+      axios.get(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(fullAddress)}`)
+        .then(res => {
+          if (res.data.length > 0) {
+            const loc = res.data[0];
+            const lat = parseFloat(loc.lat);
+            const lng = parseFloat(loc.lon);
+
+            const prop = { address, postcode, lat, lng };
+            properties.push(prop);
+            saveProperties();
+            addMarker(prop);
+            document.getElementById("address").value = '';
+            document.getElementById("postcode").value = '';
+          } else {
+            alert("Location not found.");
+          }
+        });
+    }
+
+    function clearProperties() {
+      if (confirm("Are you sure you want to remove all properties?")) {
+        properties = [];
+        localStorage.removeItem("properties");
+        location.reload();
+      }
+    }
+
+    loadMarkers();
+  </script>
 </body>
 </html>
