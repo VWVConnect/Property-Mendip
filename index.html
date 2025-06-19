@@ -1,102 +1,102 @@
-<!DOCTYPE html>
+<!DOCTYPE html> 
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>UK Property Tracker</title>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>UK Property Tracker</title>
 
-  <!-- Google Fonts -->
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet" />
+<!-- Google Fonts -->
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet" />
 
-  <!-- Leaflet CSS -->
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css" />
+<!-- Leaflet CSS -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css" />
 
-  <style>
-    body {
-      font-family: 'Inter', sans-serif;
-      margin: 0;
-      background: #ffffff;
-      color: #333;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      padding: 20px;
-    }
+<style>
+  body {
+    font-family: 'Inter', sans-serif;
+    margin: 0;
+    background: #ffffff; /* White background */
+    color: #333;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px;
+  }
 
+  #controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    padding: 16px;
+    background: #fff;
+    border: 3px solid #192543;
+    border-radius: 14px;
+    max-width: 900px;
+    width: 100%;
+    box-sizing: border-box;
+    margin-bottom: 20px;
+    justify-content: center;
+  }
+
+  input {
+    padding: 10px 12px;
+    font-size: 14px;
+    border: none;
+    border-left: 6px solid #7fc28f;
+    border-right: 6px solid #07b0a0;
+    border-radius: 10px;
+    outline: none;
+    flex: 1 1 220px;
+    box-shadow: inset 0 1px 2px rgba(0,0,0,0.05);
+    min-width: 220px;
+  }
+
+  button {
+    padding: 10px 20px;
+    font-size: 14px;
+    color: white;
+    border: none;
+    border-radius: 14px;
+    cursor: pointer;
+    transition: background-color 0.25s ease;
+    min-width: 120px;
+    font-weight: 600;
+    box-shadow: 0 3px 6px rgba(0,0,0,0.12);
+  }
+
+  button#add-btn {
+    background-color: #00a6c5;
+  }
+  button#add-btn:hover {
+    background-color: #008ba3;
+  }
+
+  button#clear-btn {
+    background-color: #192543;
+  }
+  button#clear-btn:hover {
+    background-color: #121e35;
+  }
+
+  #map {
+    height: 70vh;
+    max-width: 900px;
+    width: 100%;
+    border: 3px solid #192543;
+    border-radius: 14px;
+    box-shadow: 0 4px 8px rgba(25,37,67,0.15);
+  }
+
+  @media (max-width: 600px) {
     #controls {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 12px;
-      padding: 16px;
-      background: #fff;
-      border: 3px solid #192543;
-      border-radius: 14px;
-      max-width: 900px;
-      width: 100%;
-      box-sizing: border-box;
-      margin-bottom: 20px;
-      justify-content: center;
+      flex-direction: column;
+      align-items: stretch;
     }
-
-    input {
-      padding: 10px 12px;
-      font-size: 14px;
-      border: none;
-      border-left: 6px solid #7fc28f;
-      border-right: 6px solid #07b0a0;
-      border-radius: 10px;
-      outline: none;
-      flex: 1 1 220px;
-      min-width: 220px;
-      box-shadow: inset 0 1px 2px rgba(0,0,0,0.05);
-    }
-
     button {
-      padding: 10px 20px;
-      font-size: 14px;
-      color: white;
-      border: none;
-      border-radius: 14px;
-      cursor: pointer;
-      transition: background-color 0.25s ease;
-      min-width: 120px;
-      font-weight: 600;
-      box-shadow: 0 3px 6px rgba(0,0,0,0.12);
-    }
-
-    button#add-btn {
-      background-color: #00a6c5;
-    }
-    button#add-btn:hover {
-      background-color: #008ba3;
-    }
-
-    button#clear-btn {
-      background-color: #192543;
-    }
-    button#clear-btn:hover {
-      background-color: #121e35;
-    }
-
-    #map {
-      height: 70vh;
-      max-width: 900px;
       width: 100%;
-      border: 3px solid #192543;
-      border-radius: 14px;
-      box-shadow: 0 4px 8px rgba(25,37,67,0.15);
     }
-
-    @media (max-width: 600px) {
-      #controls {
-        flex-direction: column;
-        align-items: stretch;
-      }
-      button {
-        width: 100%;
-      }
-    }
-  </style>
+  }
+</style>
 </head>
 <body>
 
@@ -109,125 +109,90 @@
 
   <div id="map"></div>
 
-  <!-- Dependencies -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js"></script>
-  <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+<!-- Leaflet JS -->
+<script src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js"></script>
+<script src="https://unpkg.com/axios/dist/axios.min.js"></script>
 
-  <script>
-    // 🔧 REPLACE this with your real anon public key!
-    const supabaseUrl = 'https://nszimeqqpbjjtjdxrogk.supabase.co';
-    const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5zemltZXFxcGJqanRqZHhyb2drIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTAzNDAzMTUsImV4cCI6MjA2NTkxNjMxNX0.UHF6NZgTev_VkfoRXs_53w5h_-AFR0PcKhGDpbNyoIM'; // ← Paste your anon key here
+<script>
+  // UK bounds approx - restrict panning and zoom
+  const ukBounds = [
+    [49.8, -8.6],  // Southwest (Cornwall)
+    [60.9, 2.1]    // Northeast (Shetland Islands)
+  ];
 
-    const supabase = supabase.createClient(supabaseUrl, supabaseAnonKey);
+  const map = L.map('map', {
+    maxBounds: ukBounds,
+    maxBoundsViscosity: 0.7,
+    minZoom: 5,
+    maxZoom: 10,
+  }).setView([54.5, -3], 6);
 
-    const ukBounds = [
-      [49.8, -8.6],
-      [60.9, 2.1]
-    ];
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 
-    const map = L.map('map', {
-      maxBounds: ukBounds,
-      maxBoundsViscosity: 0.7,
-      minZoom: 5,
-      maxZoom: 10,
-    }).setView([54.5, -3], 6);
+  let properties = JSON.parse(localStorage.getItem("properties") || "[]");
 
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+  function saveProperties() {
+    localStorage.setItem("properties", JSON.stringify(properties));
+  }
 
-    function addMarker(p) {
-      L.marker([p.latitude, p.longitude], {
-        icon: L.icon({
-          iconUrl: "https://chart.googleapis.com/chart?chst=d_map_pin_letter&chld=%E2%80%A2|e1345c",
-          iconSize: [21, 34],
-          iconAnchor: [10, 34],
-          popupAnchor: [0, -28]
-        })
-      })
-        .addTo(map)
-        .bindPopup(`<strong>${p.address}</strong><br>${p.postcode}`);
+  function addMarker(p) {
+    L.marker([p.lat, p.lng])
+      .addTo(map)
+      .bindPopup(<strong>${p.address}</strong><br>${p.postcode});
+  }
+
+  function loadMarkers() {
+    properties.forEach(addMarker);
+  }
+
+  function addProperty() {
+    const address = document.getElementById("address").value.trim();
+    const postcode = document.getElementById("postcode").value.trim();
+    if (!address || !postcode) {
+      alert("Please enter both an address and a postcode.");
+      return;
     }
 
-    async function loadMarkers() {
-      const { data, error } = await supabase
-        .from("properties")
-        .select("*")
-        .order('created_at', { ascending: true });
+    const fullAddress = ${address}, ${postcode}, UK;
 
-      if (error) {
-        console.error("Error loading properties:", error);
-        alert("Failed to load properties.");
-        return;
-      }
+    axios.get(https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(fullAddress)})
+      .then(res => {
+        if (res.data.length > 0) {
+          const loc = res.data[0];
+          const lat = parseFloat(loc.lat);
+          const lng = parseFloat(loc.lon);
 
-      data.forEach(addMarker);
-    }
-
-    async function addProperty() {
-      const address = document.getElementById("address").value.trim();
-      const postcode = document.getElementById("postcode").value.trim();
-      if (!address || !postcode) {
-        alert("Please enter both an address and a postcode.");
-        return;
-      }
-
-      const fullAddress = `${address}, ${postcode}, UK`;
-
-      try {
-        const res = await axios.get(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(fullAddress)}`);
-        if (res.data.length === 0) {
-          alert("Location not found.");
-          return;
-        }
-
-        const loc = res.data[0];
-        const lat = parseFloat(loc.lat);
-        const lng = parseFloat(loc.lon);
-
-        if (lat < ukBounds[0][0] || lat > ukBounds[1][0] || lng < ukBounds[0][1] || lng > ukBounds[1][1]) {
-          alert("This location is outside the UK bounds.");
-          return;
-        }
-
-        const { data, error } = await supabase.from("properties").insert([
-          {
-            address,
-            postcode,
-            latitude: lat,
-            longitude: lng
+          // Check if coords inside UK bounds before adding
+          if (lat < ukBounds[0][0] || lat > ukBounds[1][0] || lng < ukBounds[0][1] || lng > ukBounds[1][1]) {
+            alert("This location is outside the UK bounds.");
+            return;
           }
-        ]);
 
-        if (error) {
-          console.error("Error adding property:", error);
-          alert("Failed to add property.");
-          return;
+          const prop = { address, postcode, lat, lng };
+          properties.push(prop);
+          saveProperties();
+          addMarker(prop);
+
+          // Reset inputs
+          document.getElementById("address").value = '';
+          document.getElementById("postcode").value = '';
+        } else {
+          alert("Location not found.");
         }
+      })
+      .catch(() => alert("Error fetching location data."));
+  }
 
-        addMarker(data[0]);
-        document.getElementById("address").value = '';
-        document.getElementById("postcode").value = '';
-
-      } catch (e) {
-        console.error("Error:", e);
-        alert("Failed to fetch location.");
-      }
-    }
-
-    async function clearProperties() {
-      if (!confirm("Are you sure you want to clear all properties?")) return;
-
-      const { error } = await supabase.from("properties").delete().neq("id", 0);
-      if (error) {
-        console.error("Error clearing properties:", error);
-        alert("Failed to clear properties.");
-        return;
-      }
+  function clearProperties() {
+    if (confirm("Are you sure you want to clear all properties?")) {
+      properties = [];
+      localStorage.removeItem("properties");
       location.reload();
     }
+  }
 
-    loadMarkers();
-  </script>
+  loadMarkers();
+</script>
 
 </body>
 </html>
