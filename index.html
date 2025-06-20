@@ -109,8 +109,8 @@
   <div id="controls">
     <input id="address" placeholder="Property Address" />
     <input id="postcode" placeholder="Postcode" />
-    <button id="add-btn" onclick="addProperty()">Add Property</button>
-    <button id="clear-btn" onclick="clearProperties()">Clear All</button>
+    <button id="add-btn">Add Property</button>
+    <button id="clear-btn">Clear All</button>
   </div>
 
   <div id="map"></div>
@@ -123,115 +123,123 @@
   <script src="https://unpkg.com/@supabase/supabase-js"></script>
 
   <script>
-    const supabaseUrl = "https://nszimeqqpbjjtjdxrogk.supabase.co";
-    const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5zemltZXFxcGJqanRqZHhyb2drIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTAzNDAzMTUsImV4cCI6MjA2NTkxNjMxNX0.UHF6NZgTev_VkfoRXs_53w5h_-AFR0PcKhGDpbNyoIM";
-    const supabase = supabase.createClient(supabaseUrl, supabaseKey);
+    document.addEventListener('DOMContentLoaded', () => {
+      const supabaseUrl = "https://nszimeqqpbjjtjdxrogk.supabase.co";
+      const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5zemltZXFxcGJqanRqZHhyb2drIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTAzNDAzMTUsImV4cCI6MjA2NTkxNjMxNX0.UHF6NZgTev_VkfoRXs_53w5h_-AFR0PcKhGDpbNyoIM";
+      const supabase = supabase.createClient(supabaseUrl, supabaseKey);
 
-    const ukBounds = [
-      [49.8, -8.6],
-      [60.9, 2.1]
-    ];
+      const ukBounds = [
+        [49.8, -8.6],
+        [60.9, 2.1]
+      ];
 
-    const map = L.map('map', {
-      maxBounds: ukBounds,
-      maxBoundsViscosity: 0.7,
-      minZoom: 5,
-      maxZoom: 10,
-    }).setView([54.5, -3], 6);
+      const map = L.map('map', {
+        maxBounds: ukBounds,
+        maxBoundsViscosity: 0.7,
+        minZoom: 5,
+        maxZoom: 10,
+      }).setView([54.5, -3], 6);
 
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: 'Map data © <a href="https://openstreetmap.org">OpenStreetMap</a> contributors'
-    }).addTo(map);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: 'Map data © <a href="https://openstreetmap.org">OpenStreetMap</a> contributors'
+      }).addTo(map);
 
-    function addMarker(p) {
-      L.marker([p.lat, p.lng])
-        .addTo(map)
-        .bindPopup(`<strong>${p.address}</strong><br>${p.postcode}`);
-    }
-
-    async function loadProperties() {
-      const { data, error } = await supabase.from("properties").select("*");
-      if (error) {
-        console.error("Error loading properties:", error.message);
-        return;
-      }
-      data.forEach(addMarker);
-    }
-
-    async function addProperty() {
-      const address = document.getElementById("address").value.trim();
-      const postcode = document.getElementById("postcode").value.trim();
-
-      if (!address || !postcode) {
-        alert("Please enter both an address and a postcode.");
-        return;
+      function addMarker(p) {
+        L.marker([p.lat, p.lng])
+          .addTo(map)
+          .bindPopup(`<strong>${p.address}</strong><br>${p.postcode}`);
       }
 
-      const fullAddress = `${address}, ${postcode}, UK`;
-
-      try {
-        const response = await axios.get(
-          `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(fullAddress)}`,
-          {
-            headers: {
-              "User-Agent": "uk-property-tracker/1.0 (contact@example.com)"
-            }
-          }
-        );
-
-        if (response.data.length === 0) {
-          alert("Location not found.");
-          return;
-        }
-
-        const loc = response.data[0];
-        const lat = parseFloat(loc.lat);
-        const lng = parseFloat(loc.lon);
-
-        if (
-          lat < ukBounds[0][0] || lat > ukBounds[1][0] ||
-          lng < ukBounds[0][1] || lng > ukBounds[1][1]
-        ) {
-          alert("This location is outside the UK bounds.");
-          return;
-        }
-
-        const newProperty = { address, postcode, lat, lng };
-
-        // Save to Supabase immediately
-        const { error } = await supabase.from("properties").insert([newProperty]);
-
+      async function loadProperties() {
+        const { data, error } = await supabase.from("properties").select("*");
         if (error) {
-          console.error("Error saving property:", error.message);
-          alert("Failed to save property.");
+          console.error("Error loading properties:", error.message);
+          return;
+        }
+        data.forEach(addMarker);
+      }
+
+      async function addProperty() {
+        const addressInput = document.getElementById("address");
+        const postcodeInput = document.getElementById("postcode");
+        const address = addressInput.value.trim();
+        const postcode = postcodeInput.value.trim();
+
+        if (!address || !postcode) {
+          alert("Please enter both an address and a postcode.");
           return;
         }
 
-        // Show marker immediately
-        addMarker(newProperty);
+        const fullAddress = `${address}, ${postcode}, UK`;
 
-        // Clear inputs
-        document.getElementById("address").value = "";
-        document.getElementById("postcode").value = "";
-      } catch (err) {
-        console.error("Error retrieving location data:", err);
-        alert("Error retrieving location data.");
+        try {
+          const response = await axios.get(
+            `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(fullAddress)}`,
+            {
+              headers: {
+                "User-Agent": "uk-property-tracker/1.0 (contact@example.com)"
+              }
+            }
+          );
+
+          if (response.data.length === 0) {
+            alert("Location not found.");
+            return;
+          }
+
+          const loc = response.data[0];
+          const lat = parseFloat(loc.lat);
+          const lng = parseFloat(loc.lon);
+
+          if (
+            lat < ukBounds[0][0] || lat > ukBounds[1][0] ||
+            lng < ukBounds[0][1] || lng > ukBounds[1][1]
+          ) {
+            alert("This location is outside the UK bounds.");
+            return;
+          }
+
+          // Save to Supabase backend
+          const { error } = await supabase.from("properties").insert([
+            { address, postcode, lat, lng }
+          ]);
+
+          if (error) {
+            console.error("Error saving property:", error.message);
+            alert("Failed to save property.");
+            return;
+          }
+
+          const newProperty = { address, postcode, lat, lng };
+          addMarker(newProperty);
+
+          addressInput.value = "";
+          postcodeInput.value = "";
+        } catch (err) {
+          console.error("Error retrieving location data:", err);
+          alert("Error retrieving location data.");
+        }
       }
-    }
 
-    async function clearProperties() {
-      if (!confirm("Are you sure you want to delete all properties?")) return;
+      async function clearProperties() {
+        if (!confirm("Are you sure you want to delete all properties?")) return;
 
-      const { error } = await supabase.from("properties").delete().neq("id", 0);
-      if (error) {
-        console.error("Error clearing properties:", error.message);
-        alert("Failed to clear properties.");
-      } else {
-        location.reload();
+        const { error } = await supabase.from("properties").delete().neq("id", 0);
+        if (error) {
+          console.error("Error clearing properties:", error.message);
+          alert("Failed to clear properties.");
+        } else {
+          location.reload();
+        }
       }
-    }
 
-    loadProperties();
+      // Event listeners
+      document.getElementById('add-btn').addEventListener('click', addProperty);
+      document.getElementById('clear-btn').addEventListener('click', clearProperties);
+
+      // Load existing properties from backend
+      loadProperties();
+    });
   </script>
 </body>
 </html>
