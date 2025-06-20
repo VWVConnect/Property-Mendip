@@ -12,15 +12,16 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css" />
 
   <style>
-    body {
-      font-family: 'Inter', sans-serif;
+    html, body {
       margin: 0;
+      padding: 0;
+      height: 100%;
+      font-family: 'Inter', sans-serif;
       background: #ffffff;
       color: #333;
       display: flex;
       flex-direction: column;
       align-items: center;
-      padding: 20px;
     }
 
     #controls {
@@ -34,8 +35,10 @@
       max-width: 900px;
       width: 100%;
       box-sizing: border-box;
+      margin-top: 20px;
       margin-bottom: 20px;
       justify-content: center;
+      z-index: 1000;
     }
 
     input {
@@ -120,7 +123,6 @@
   <script src="https://unpkg.com/@supabase/supabase-js"></script>
 
   <script>
-    // Replace with your own Supabase credentials
     const supabaseUrl = "https://nszimeqqpbjjtjdxrogk.supabase.co";
     const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5zemltZXFxcGJqanRqZHhyb2drIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTAzNDAzMTUsImV4cCI6MjA2NTkxNjMxNX0.UHF6NZgTev_VkfoRXs_53w5h_-AFR0PcKhGDpbNyoIM";
     const supabase = supabase.createClient(supabaseUrl, supabaseKey);
@@ -137,7 +139,9 @@
       maxZoom: 10,
     }).setView([54.5, -3], 6);
 
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: 'Map data © <a href="https://openstreetmap.org">OpenStreetMap</a> contributors'
+    }).addTo(map);
 
     function addMarker(p) {
       L.marker([p.lat, p.lng])
@@ -170,7 +174,7 @@
           `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(fullAddress)}`,
           {
             headers: {
-              "User-Agent": "uk-property-tracker/1.0 (your@email.com)"
+              "User-Agent": "uk-property-tracker/1.0 (contact@example.com)"
             }
           }
         );
@@ -209,7 +213,7 @@
         document.getElementById("postcode").value = "";
       } catch (err) {
         console.error("Error retrieving location data:", err);
-        alert("Error retrieving location data. See console for details.");
+        alert("Error retrieving location data.");
       }
     }
 
