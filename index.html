@@ -75,6 +75,14 @@
       background-color: #008ba3;
     }
 
+    button#save-btn {
+      background-color: #28a745;
+    }
+
+    button#save-btn:hover {
+      background-color: #1e7e34;
+    }
+
     button#clear-btn {
       background-color: #192543;
     }
@@ -110,6 +118,7 @@
     <input id="address" placeholder="Property Address" />
     <input id="postcode" placeholder="Postcode" />
     <button id="add-btn" onclick="addProperty()">Add Property</button>
+    <button id="save-btn" onclick="saveAllProperties()">Save All</button>
     <button id="clear-btn" onclick="clearProperties()">Clear All</button>
   </div>
 
@@ -142,6 +151,9 @@
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: 'Map data © <a href="https://openstreetmap.org">OpenStreetMap</a> contributors'
     }).addTo(map);
+
+    // Local array to hold added properties before saving
+    let properties = [];
 
     function addMarker(p) {
       L.marker([p.lat, p.lng])
@@ -196,24 +208,47 @@
           return;
         }
 
-        const { error } = await supabase.from("properties").insert([
-          { address, postcode, lat, lng }
-        ]);
-
-        if (error) {
-          console.error("Error saving property:", error.message);
-          alert("Failed to save property.");
-          return;
-        }
-
         const newProperty = { address, postcode, lat, lng };
+
+        // Add to local properties array
+        properties.push(newProperty);
+
+        // Show marker immediately
         addMarker(newProperty);
 
+        // Clear inputs
         document.getElementById("address").value = "";
         document.getElementById("postcode").value = "";
       } catch (err) {
         console.error("Error retrieving location data:", err);
         alert("Error retrieving location data.");
+      }
+    }
+
+    async function saveAllProperties() {
+      if (properties.length === 0) {
+        alert("No properties to save.");
+        return;
+      }
+
+      try {
+        const { data, error } = await supabase
+          .from("properties")
+          .insert(properties);
+
+        if (error) {
+          console.error("Error saving properties:", error.message);
+          alert("Failed to save properties.");
+          return;
+        }
+
+        alert(`${data.length} properties saved successfully!`);
+
+        // Clear local properties array after saving
+        properties = [];
+      } catch (err) {
+        console.error("Error saving properties:", err);
+        alert("Error saving properties.");
       }
     }
 
@@ -229,7 +264,9 @@
       }
     }
 
+    // Load previously saved properties on page load
     loadProperties();
+
   </script>
 </body>
 </html>
