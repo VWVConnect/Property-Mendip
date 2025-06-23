@@ -129,7 +129,7 @@
       const supabaseUrl = "https://nszimeqqpbjjtjdxrogk.supabase.co";
       const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5zemltZXFxcGJqanRqZHhyb2drIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTAzNDAzMTUsImV4cCI6MjA2NTkxNjMxNX0.UHF6NZgTev_VkfoRXs_53w5h_-AFR0PcKhGDpbNyoIM";
 
-      // Use different variable name to avoid conflicts
+      // Use a different variable name to avoid conflict with global `supabase`
       const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
 
       const ukBounds = [
@@ -144,9 +144,8 @@
         maxZoom: 10,
       }).setView([54.5, -3], 6);
 
-      // Remove Ukrainian flag by customizing attribution text here:
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: 'Map data © OpenStreetMap contributors'
+        attribution: 'Map data © <a href="https://openstreetmap.org">OpenStreetMap</a> contributors'
       }).addTo(map);
 
       function addMarker(p) {
@@ -195,3 +194,52 @@
           const loc = response.data[0];
           const lat = parseFloat(loc.lat);
           const lng = parseFloat(loc.lon);
+
+          if (
+            lat < ukBounds[0][0] || lat > ukBounds[1][0] ||
+            lng < ukBounds[0][1] || lng > ukBounds[1][1]
+          ) {
+            alert("This location is outside the UK bounds.");
+            return;
+          }
+
+          const { error } = await supabaseClient.from("properties").insert([
+            { address, postcode, lat, lng }
+          ]);
+
+          if (error) {
+            console.error("Error saving property:", error.message);
+            alert("Failed to save property.");
+            return;
+          }
+
+          addMarker({ address, postcode, lat, lng });
+
+          addressInput.value = "";
+          postcodeInput.value = "";
+        } catch (err) {
+          console.error("Error retrieving location data:", err);
+          alert("Error retrieving location data.");
+        }
+      }
+
+      async function clearProperties() {
+        if (!confirm("Are you sure you want to delete all properties?")) return;
+
+        const { error } = await supabaseClient.from("properties").delete().neq("id", 0);
+        if (error) {
+          console.error("Error clearing properties:", error.message);
+          alert("Failed to clear properties.");
+        } else {
+          location.reload();
+        }
+      }
+
+      document.getElementById('add-btn').addEventListener('click', addProperty);
+      document.getElementById('clear-btn').addEventListener('click', clearProperties);
+
+      loadProperties();
+    });
+  </script>
+</body>
+</html>
