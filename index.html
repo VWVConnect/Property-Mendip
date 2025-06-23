@@ -22,6 +22,7 @@
       display: flex;
       flex-direction: column;
       align-items: center;
+      flex: 1;
     }
 
     #controls {
@@ -90,6 +91,7 @@
       border: 3px solid #192543;
       border-radius: 14px;
       box-shadow: 0 4px 8px rgba(25, 37, 67, 0.15);
+      flex-grow: 1;
     }
 
     @media (max-width: 600px) {
@@ -177,7 +179,7 @@
             `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(fullAddress)}`,
             {
               headers: {
-                "User-Agent": "uk-property-tracker/1.0 (contact@example.com)"
+                "User-Agent": "uk-property-tracker/1.0 (your@email.com)"
               }
             }
           );
@@ -199,7 +201,6 @@
             return;
           }
 
-          // Save to Supabase backend
           const { error } = await supabase.from("properties").insert([
             { address, postcode, lat, lng }
           ]);
@@ -210,8 +211,7 @@
             return;
           }
 
-          const newProperty = { address, postcode, lat, lng };
-          addMarker(newProperty);
+          addMarker({ address, postcode, lat, lng });
 
           addressInput.value = "";
           postcodeInput.value = "";
@@ -233,11 +233,9 @@
         }
       }
 
-      // Event listeners
       document.getElementById('add-btn').addEventListener('click', addProperty);
       document.getElementById('clear-btn').addEventListener('click', clearProperties);
 
-      // Load existing properties from backend
       loadProperties();
     });
   </script>
