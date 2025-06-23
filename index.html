@@ -2,34 +2,161 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Leaflet Map Test</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <link
-    rel="stylesheet"
-    href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css"
-  />
+  <title>UK Property Tracker</title>
+
+  <!-- Leaflet CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css" />
+
   <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      font-family: sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    #controls {
+      margin: 16px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      justify-content: center;
+    }
+
+    input {
+      padding: 10px;
+      font-size: 14px;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+      min-width: 200px;
+    }
+
+    button {
+      padding: 10px 20px;
+      font-size: 14px;
+      background-color: #007bff;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+
     #map {
-      height: 400px;
-      width: 100%;
-      border: 1px solid #333;
+      height: 70vh;
+      width: 90%;
+      max-width: 900px;
+      border: 2px solid #333;
+      border-radius: 10px;
     }
   </style>
 </head>
 <body>
 
+  <div id="controls">
+    <input id="address" placeholder="Address" />
+    <input id="postcode" placeholder="Postcode" />
+    <button id="add-btn">Add Property</button>
+  </div>
+
   <div id="map"></div>
 
+  <!-- Leaflet JS -->
   <script src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js"></script>
+  <!-- Axios -->
+  <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+  <!-- Supabase -->
+  <script src="https://unpkg.com/@supabase/supabase-js"></script>
+
   <script>
     document.addEventListener('DOMContentLoaded', () => {
-      const map = L.map('map').setView([51.505, -0.09], 13);
+      const supabaseUrl = "YOUR_SUPABASE_URL";
+      const supabaseKey = "YOUR_SUPABASE_ANON_KEY";
+      const supabase = supabase.createClient(supabaseUrl, supabaseKey);
+
+      const map = L.map('map').setView([54.5, -3], 6);
+      const ukBounds = [[49.8, -8.6], [60.9, 2.1]];
+
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        maxZoom: 19,
-        attribution: '© OpenStreetMap'
+        attribution: 'Map data © <a href="https://openstreetmap.org">OpenStreetMap</a> contributors'
       }).addTo(map);
+
+      function addMarker({ address, postcode, lat, lng }) {
+        L.marker([lat, lng])
+          .addTo(map)
+          .bindPopup(`<strong>${address}</strong><br>${postcode}`);
+      }
+
+      async function loadProperties() {
+        const { data, error } = await supabase.from("properties").select("*");
+        if (error) {
+          console.error("Failed to load properties:", error.message);
+          return;
+        }
+        data.forEach(addMarker);
+      }
+
+      async function addProperty() {
+        const address = document.getElementById('address').value.trim();
+        const postcode = document.getElementById('postcode').value.trim();
+
+        if (!address || !postcode) {
+          alert("Please enter both address and postcode.");
+          return;
+        }
+
+        const fullAddress = `${address}, ${postcode}, UK`;
+        try {
+          const response = await axios.get(
+            `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(fullAddress)}`,
+            {
+              headers: { "User-Agent": "uk-property-tracker/1.0" }
+            }
+          );
+
+          if (!response.data.length) {
+            alert("Location not found.");
+            return;
+          }
+
+          const loc = response.data[0];
+          const lat = parseFloat(loc.lat);
+          const lng = parseFloat(loc.lon);
+
+          if (
+            lat < ukBounds[0][0] || lat > ukBounds[1][0] ||
+            lng < ukBounds[0][1] || lng > ukBounds[1][1]
+          ) {
+            alert("Location outside UK bounds.");
+            return;
+          }
+
+          const newProperty = { address, postcode, lat, lng };
+
+          const { error } = await supabase.from("properties").insert([newProperty]);
+          if (error) {
+            console.error("Error saving property:", error.message);
+            alert("Failed to save property.");
+            return;
+          }
+
+          addMarker(newProperty);
+          document.getElementById('address').value = "";
+          document.getElementById('postcode').value = "";
+
+        } catch (err) {
+          console.error("Error fetching geocode:", err);
+          alert("Error fetching location data.");
+        }
+      }
+
+      document.getElementById('add-btn').addEventListener('click', addProperty);
+
+      loadProperties();
     });
   </script>
-
 </body>
 </html>
